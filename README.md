@@ -1,4 +1,4 @@
-# Exporter monitor cisco 3650
+# Cisco SF300 exporter for hardware CPU, Build No, Version etc. written in Python with pluggable metric collectors.
 This project is built with:
 
 - Python 3.6.x
