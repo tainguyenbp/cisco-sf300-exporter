@@ -22,7 +22,7 @@ monitoring application.
 To instrument our Python code we need to manipulate the metrics each
 time a new HTTP request is received.
 
-See [the application](./cisco3650_exporter.py) for more details.
+See [the application](./cisco-sf300_exporter.py) for more details.
 
 ## Building
 
@@ -30,9 +30,9 @@ This project is automatically built by Docker Automated Builds.
 
 To build manually:
 ```
-git clone https://github.com/tainguyenbp/cisco3650_exporter.git
-cd cisco3650_exporter
-docker build -t cisco3650-exporter/tainguyenbp:v1.1 .
+git clone https://github.com/tainguyenbp/cisco-sf300_exporter.git
+cd cisco-sf300_exporter
+docker build -t cisco-sf300_exporter/tainguyenbp:v1.1 .
 ```
 
 ## Running
@@ -50,7 +50,7 @@ access url with port 9250:
 ## Add config to the prometheus.yml file:
 
 ```
-  - job_name: 'cisco3650_exporter'
+  - job_name: 'cisco-sf300_exporter'
     scrape_interval: 30s
     scrape_timeout: 30s
     static_configs:
