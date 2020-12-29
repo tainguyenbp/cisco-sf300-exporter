@@ -52,8 +52,8 @@ access url with port 9253:
 
 ```
   - job_name: 'cisco_sf300_exporter'
-    scrape_interval: 30s
-    scrape_timeout: 30s
+    scrape_interval: 60s
+    scrape_timeout: 60s
     static_configs:
     - targets: ['192.168.1.10:9253']
 ```
