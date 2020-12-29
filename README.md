@@ -38,7 +38,7 @@ docker build -t cisco-sf300_exporter/tainguyenbp:v1.1 .
 
 ## Running
 
-Simply open port 9250 when running as a container:
+Simply open port 9253 when running as a container:
 
 `docker-comose up --build -d`
 
