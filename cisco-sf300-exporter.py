@@ -3,8 +3,8 @@ from netmiko.ssh_exception import NetMikoTimeoutException,NetMikoAuthenticationE
 from paramiko.ssh_exception import SSHException
 from http.server import HTTPServer
 
+import logging
 import socket
-import time
 import threading
 from prometheus.collectors import Gauge
 from prometheus.registry import Registry
@@ -12,71 +12,56 @@ from prometheus.exporter import PrometheusMetricHandler
 import psutil
 import re
 
-PORT_NUMBER = 9250
+logging.basicConfig(filename="/var/log/cisco-sf300-exporter.log", level=logging.DEBUG)
 
-cisco_ios = {
-    'device_type': 'cisco_ios',
+PORT_NUMBER = 9253
+
+switch_cisco_sf300 = {
+    'device_type': 'cisco_s300',
     'host':   '192.168.1.1',
     'username': 'admin',
     'password': 'admin',
-    'port' : 22,
+    'port' : 8222,
     'secret': 'admin',
+    'verbose': False,
+    'timeout': 60,
+    'global_delay_factor': 3,
+    'conn_timeout': 60,
+    'blocking_timeout': 20,
 }
 
-def gather_data(registry):
-#def gather_data():
-    """Gathers the metrics"""
+def draytek_gather_data(registry):
     host = '192.168.1.1'
-    stacks_1 = 'stacks 1'
-    stacks_2 = 'stacks 2'
+    """Gathers the metrics"""
+
     # Get the host name of the machine
 
-    metric_total_disk_stacks1 = Gauge("cisco_switch_3650_total_disk_stacks1_bytes", "Cisco switch 3650 total disk stacks 1", {'host': host, 'stacks': stacks_1})
-    metric_free_disk_stacks1 = Gauge("cisco_switch_3650_free_disk_stacks1_bytes", "Cisco switch 3650 free disk stacks 1", {'host': host, 'stacks': stacks_1})
-    metric_used_disk_stacks1 = Gauge("cisco_switch_3650_used_disk_stacks1_bytes", "Cisco switch 3650 used disk of stacks 1", {'host': host, 'stacks': stacks_1})
-    metric_total_disk_stacks2 = Gauge("cisco_switch_3650_total_disk_stacks2_bytes", "Cisco switch 3650 total disk stacks 2", {'host': host, 'stacks': stacks_2})
-    metric_free_disk_stacks2 = Gauge("cisco_switch_3650_free_disk_stacks2_bytes", "Cisco switch 3650 free disk stacks 2", {'host': host, 'stacks': stacks_2})
-    metric_used_disk_stacks2 = Gauge("cisco_switch_3650_used_disk_stacks2_bytes", "Cisco switch 3650 used disk of stacks 2", {'host': host, 'stacks': stacks_2})
-    
-    registry.register(metric_total_disk_stacks1)
-    registry.register(metric_free_disk_stacks1)
-    registry.register(metric_used_disk_stacks1)
-    registry.register(metric_total_disk_stacks2)
-    registry.register(metric_free_disk_stacks2)
-    registry.register(metric_used_disk_stacks2)
+    metric_cpu_5_seconds = Gauge("switch_cisso_sf300_cpu_5_seconds", "switch cisco sf300 cpu usage 5 seconds", {'host': host})
+    metric_cpu_1_minutes = Gauge("switch_cisso_sf300_cpu_1_minutes", "switch cisco sf300 cpu usage 1 minutes", {'host': host})
+    metric_cpu_5_minutes = Gauge("switch_cisso_sf300_cpu_5_minutes", "switch cisco sf300 cpu usage 5 minutes", {'host': host})
 
+    registry.register(metric_cpu_5_seconds)
+    registry.register(metric_cpu_1_minutes)
+    registry.register(metric_cpu_5_minutes)
     
-    net_connect = ConnectHandler(**cisco_ios)
     while True:
         time.sleep(1)
-
-        command_show_infor_disk_stacks1 = 'dir flash-1:/ | include bytes | include total | include free'
-        command_show_infor_disk_stacks2 = 'dir flash-2:/ | include bytes | include total | include free'        
+        mode_enable = 'enable'
+  
+        net_connect_device = ConnectHandler(**switch_cisco_sf300)
+        net_connect_device.enable()
         
-        result_run_command_show_infor_disk_stacks1 = net_connect.send_command(command_show_infor_disk_stacks1)
-        result_run_command_show_infor_disk_stacks2 = net_connect.send_command(command_show_infor_disk_stacks2)
-    
-        [value_total_disk_stacks1,value_free_disk_stacks1] = re.findall("\d+", result_run_command_show_infor_disk_stacks1)
-        [value_total_disk_stacks2,value_free_disk_stacks2] = re.findall("\d+", result_run_command_show_infor_disk_stacks2)
+        command_show_cpu = 'show cpu utilization'
 
-        value_used_disk_stacks1 = int(value_total_disk_stacks1) - int(value_free_disk_stacks1)
-        value_used_disk_stacks2 = int(value_total_disk_stacks2) - int(value_free_disk_stacks2)
-    
-        metric_free_disk_stacks1.set({},value_free_disk_stacks1)
-        metric_used_disk_stacks1.set({},value_used_disk_stacks1)
-        metric_total_disk_stacks1.set({},value_total_disk_stacks1)
-        metric_free_disk_stacks2.set({},value_free_disk_stacks2)
-        metric_used_disk_stacks2.set({},value_used_disk_stacks2)
-        metric_total_disk_stacks2.set({},value_total_disk_stacks2)
+        result_run_command_cpu = net_connect_device.send_command(command_show_cpu, expect_string=r'#')
+        
+        [cpu_5_seconds, cpu_1_minutes, cpu_5_minutes] = re.findall("\d+", result_run_command_cpu)
 
+        metric_cpu_5_seconds.set({},cpu_5_seconds)
+        metric_cpu_1_minutes.set({},cpu_1_minutes)
+        metric_cpu_5_minutes.set({},cpu_5_minutes)    
 
-#    print('total disk: ',metric_total_disk_stacks1)
-#    print('free disk: ',metric_free_disk_stacks1)
-#    print('used disk: ',metric_used_disk_stacks1)
-
-#    print('total disk: ',metric_total_disk_stacks2)
-#    print('free disk: ',metric_free_disk_stacks2)
-#    print('used disk: ',metric_used_disk_stacks2)
+        net_connect_device.disconnect()
 
 if __name__ == '__main__':
 #    gather_data()
@@ -84,7 +69,7 @@ if __name__ == '__main__':
     registry = Registry()
 
     # Create the thread that gathers the data while we serve it
-    thread = threading.Thread(target=gather_data, args=(registry, ))
+    thread = threading.Thread(target=draytek_gather_data, args=(registry, ))
     thread.start()
 
     # Set a server to export (expose to prometheus) the data (in a thread)

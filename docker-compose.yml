@@ -1,10 +1,10 @@
 version: '2'
 services:
-  cisco3650_exporter:
+  cisco_sf300_exporter:
     build:
       context: .
-    image: cisco3650_exporter/tainguyenbp:v1.1
-    container_name: cisco3650_exporter
+    image: cisco_sf300_exporter/tainguyenbp:v1.1
+    container_name: cisco_sf300_exporter
     restart: always
     ports:
-      - 9250:9250
+      - 9253:9253
